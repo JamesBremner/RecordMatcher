@@ -159,7 +159,6 @@ bool isPair(int r1, int r2)
 }
 void findPairs()
 {
-
     raven::set::cRunWatch aWatcher("findPairs");
 
     int colCount = vdata[0].size();
@@ -167,8 +166,8 @@ void findPairs()
     for (int kr1 = 0; kr1 < vdata.size(); kr1++)
     {
         bool pairPossible = false;
-        for (int kc1 = 0; kc1 < colCount; kc1++)
-            for (int kc2 = kc1 + 1; kc2 < colCount; kc2++)
+        for (int kc1 = 0; kc1 < colCount; kc1++) {
+            for (int kc2 = kc1 + 1; kc2 < colCount; kc2++) {
                 if (vdata[kr1][kc1] == vdata[kr1][kc2])
                 {
                     // row has two cols with equal values
@@ -176,6 +175,10 @@ void findPairs()
                     pairPossible = true;
                     break;
                 }
+            }
+            if (!pairPossible)
+                break;
+        }
         if (!pairPossible)
             continue;
         for (int kr2 = kr1 + 1; kr2 < vdata.size(); kr2++)
