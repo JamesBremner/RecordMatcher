@@ -1,10 +1,11 @@
 #source file search paths
-VPATH = ./src ../raven-set ../sqlite
+VPATH = ./src ../raven-set ../../code_ext/sqlite
 
 	# compiler include search paths
 INCS = -I./include \
 	-I../windex/include \
 	-I../raven-set \
+	-I../../code_ext/sqlite \
 	-I../../code_ext/boost/boost1_78 
 
 LIBS = \
