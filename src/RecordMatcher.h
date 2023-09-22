@@ -44,6 +44,8 @@ public:
 
     void set( const std::vector<std::vector<int>>& data );
 
+    void readfile( const std::string& fname );
+
     void findPairs();
 
     int pairCount();

@@ -121,6 +121,28 @@ void cMatcher::set( const std::vector<std::vector<int>>& data )
     vdata = data;
 }
 
+void cMatcher::readfile( const std::string& fname )
+{
+    pairStore.clear();
+    vdata.clear();
+    std::ifstream ifs( fname );
+    if( ! ifs.is_open() )
+        throw std::runtime_error(
+            "Cannot open " + fname        );
+    std::string line;
+    while( getline(ifs,line))
+    {
+        std::istringstream ss( line );
+        int value;
+        std::vector<int> row;
+        while(  ss.good() ) {
+            ss >> value;
+            row.push_back(value);
+        }
+        vdata.push_back( row );
+    }
+}
+
 bool cMatcher::isPair(int r1, int r2)
 {
     auto &v1 = vdata[r1];
