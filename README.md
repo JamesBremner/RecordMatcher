@@ -14,4 +14,4 @@ With a command line parameter, the app will generate a random data set with the 
 
 # Performance
 
-Finds ~3,000,000 pairs in 100,000 records in 110 seconds on a modest laptop.
+Finds ~3,000,000 pairs in 100,000 records in 110 seconds on a modest laptop. [Details](https://github.com/JamesBremner/RecordMatcher/wiki/Performance).
