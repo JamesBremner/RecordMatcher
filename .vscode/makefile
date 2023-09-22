@@ -23,6 +23,7 @@ CCflags = -std=c++17 $(OPT) -D_mingw_
 # sources
 OBJ_starter = \
 	$(ODIR)/main.o \
+	$(ODIR)/RecordMatcher.o \
 	$(ODIR)/cRunWatch.o \
 	$(ODIR)/sqlite3.o \
 
