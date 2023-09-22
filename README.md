@@ -25,6 +25,7 @@ LOOP N over all records
                      SAVE M,N to memory pair store
                      IF memory pair store size >= T
                          WRITE memory pair store to DB
+                         CLEAR memory pair store
 WRITE memory pair store to DB
 ```
 
