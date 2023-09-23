@@ -2,20 +2,17 @@
 
 main(int ac, char *argc[])
 {
-    int rowCount = 10;
-    if (ac == 2)
-        rowCount = atoi(argc[1]);
-
-    raven::set::cRunWatch::Start();
-
     cMatcher matcher;
+
+    matcher.parseCommandLine( ac,argc);
 
     if( ! matcher.test() )
         return 1;
 
+    raven::set::cRunWatch::Start();
+
     matcher.generateRandom(
         5,        // columns
-        rowCount, // rows
         20);      // max value
 
     matcher.findPairs();

@@ -1,7 +1,7 @@
 #include "RecordMatcher.h"
 
 cPairStorage::cPairStorage()
-    : transactionCount(500)
+    : transactionCount(1000)
 {
     int ret = sqlite3_open("pair.db", &db);
     if (ret)
@@ -17,12 +17,17 @@ cPairStorage::cPairStorage()
                        0, 0, &dbErrMsg);
 }
 
+void cPairStorage::setTransactionCount( int count )
+{
+    transactionCount = count;
+}
+
 void cPairStorage::clear()
 {
     vPair.clear();
     sqlite3_exec(db,
-                       "DELETE FROM pair;",
-                       0, 0, &dbErrMsg);
+                 "DELETE FROM pair;",
+                 0, 0, &dbErrMsg);
 }
 
 void cPairStorage::add(int r1, int r2)
@@ -101,12 +106,19 @@ std::pair<int, int> cPairStorage::get(int index)
     return pair;
 }
 
+cMatcher::cMatcher()
+: fMultiThread( false )
+{}
+
 void cMatcher::generateRandom(
     int colCount,
-    int rowCount,
     int maxValue)
 {
-    srand(time(NULL));
+    if( randSeed )
+        srand( randSeed);
+    else
+        srand(time(NULL));
+
     for (int krow = 0; krow < rowCount; krow++)
     {
         std::vector<int> vrow;
@@ -116,30 +128,56 @@ void cMatcher::generateRandom(
     }
 }
 
-void cMatcher::set( const std::vector<std::vector<int>>& data )
+ void cMatcher::parseCommandLine(int argc, char* argv[])
+ {
+    raven::set::cCommandParser P;
+    P.add("help", "\tproduce help message");
+    P.add("rows", "count\tnumber of records( default: 10 )");
+    P.add("trans", "count\tnumber of pairs to write in one DB transaction ( default: 1000 )");
+    P.add("multi", "\tmultithreading ( default: off )","bool");
+    P.add("seed", "value\trandom seed ( default: set from system clock)");
+    
+    P.parse(argc, argv);
+
+    rowCount = atoi(P.value("rows").c_str());
+    if( rowCount == 0 )
+        rowCount = 10;
+
+    fMultiThread = ( P.value("multi") == "t");
+
+    int trans  = atoi(P.value("trans").c_str());
+    if( trans > 0 )
+        pairStore.setTransactionCount( trans );
+
+    randSeed = atoi(P.value("seed").c_str());
+
+ }
+
+void cMatcher::set(const std::vector<std::vector<int>> &data)
 {
     vdata = data;
 }
 
-void cMatcher::readfile( const std::string& fname )
+void cMatcher::readfile(const std::string &fname)
 {
     pairStore.clear();
     vdata.clear();
-    std::ifstream ifs( fname );
-    if( ! ifs.is_open() )
+    std::ifstream ifs(fname);
+    if (!ifs.is_open())
         throw std::runtime_error(
-            "Cannot open " + fname        );
+            "Cannot open " + fname);
     std::string line;
-    while( getline(ifs,line))
+    while (getline(ifs, line))
     {
-        std::istringstream ss( line );
+        std::istringstream ss(line);
         int value;
         std::vector<int> row;
-        while(  ss.good() ) {
+        while (ss.good())
+        {
             ss >> value;
             row.push_back(value);
         }
-        vdata.push_back( row );
+        vdata.push_back(row);
     }
 }
 
@@ -163,40 +201,90 @@ bool cMatcher::isPair(int r1, int r2)
     }
     return false;
 }
+
+bool cMatcher::isTwoValues(int r)
+{
+    int colCount = vdata[0].size();
+
+    for (int kc1 = 0; kc1 < colCount; kc1++)
+    {
+        for (int kc2 = kc1 + 1; kc2 < colCount; kc2++)
+        {
+            if (vdata[r][kc1] == vdata[r][kc2])
+            {
+                // row has two cols with equal values
+                // so it can be part of a row pair
+                return true;
+            }
+        }
+    }
+    return false;
+}
 void cMatcher::findPairs()
 {
     raven::set::cRunWatch aWatcher("findPairs");
 
     pairStore.clear();
 
-    int colCount = vdata[0].size();
-
-    for (int kr1 = 0; kr1 < vdata.size(); kr1++)
+    if (!fMultiThread)
     {
-        bool pairPossible = false;
-        for (int kc1 = 0; kc1 < colCount; kc1++)
-        {
-            for (int kc2 = kc1 + 1; kc2 < colCount; kc2++)
-            {
-                if (vdata[kr1][kc1] == vdata[kr1][kc2])
-                {
-                    // row has two cols with equal values
-                    // so it can be part of a row pair
-                    pairPossible = true;
-                    break;
-                }
-            }
-            if (!pairPossible)
-                break;
-        }
-        if (!pairPossible)
-            continue;
-        for (int kr2 = kr1 + 1; kr2 < vdata.size(); kr2++)
-            if (isPair(kr1, kr2))
-                pairStore.add(kr1, kr2);
+        // search entire data in this process
+        findPairsRange(0, vdata.size() - 1);
+    }
+    else
+    {
+        // split data int two parts
+        // balanced so that both parts can be searched in about the same time
+        int splitRecordCount = vdata.size()/4;
+
+        // search each part in its own process
+        std::thread th1 = findPairsRange1(
+            0, splitRecordCount - 1);
+        std::thread th2 = findPairsRange2(
+            splitRecordCount, vdata.size() - 1);
+
+        // wait for both searches to complete
+        th1.join();
+        th2.join();
     }
 
     pairStore.writeDB();
+}
+
+void cMatcher::findPairsRange(
+    int first,
+    int last)
+{
+    for (int kr1 = first; kr1 <= last; kr1++)
+    {
+        if (!isTwoValues(kr1))
+            continue;
+
+        // row kr1 contains at leats two cols with equal values
+        // so it may be the first record in some matched pairs
+
+        // loop over later rows checking for matches
+        for (int kr2 = kr1 + 1; kr2 < vdata.size(); kr2++)
+            if (isPair(kr1, kr2))
+            {
+                std::lock_guard<std::mutex> lck(mtx);
+                pairStore.add(kr1, kr2);
+            }
+    }
+}
+std::thread cMatcher::findPairsRange1(
+    int first,
+    int last)
+{
+    raven::set::cRunWatch aWatcher("findPairsRange1");
+    return std::thread(&cMatcher::findPairsRange, this, first, last);
+}
+std::thread cMatcher::findPairsRange2(
+    int first,
+    int last)
+{
+    raven::set::cRunWatch aWatcher("findPairsRange2");
+    return std::thread(&cMatcher::findPairsRange, this, first, last);
 }
 
 void cMatcher::display()
@@ -226,22 +314,21 @@ bool cMatcher::test()
 {
     bool res = true;
     cMatcher M;
-    M.set({
-        { 1,1,1,2},
-        { 2,1,1,7},
-        { 1,1,1,2},
-        { 2,3,1,7}    });
-    if( ! M.isPair(0,1))
+    M.set({{1, 1, 1, 2},
+           {2, 1, 1, 7},
+           {1, 1, 1, 2},
+           {2, 3, 1, 7}});
+    if (!M.isPair(0, 1))
         res = false;
-    if( ! M.isPair(1,2))
+    if (!M.isPair(1, 2))
         res = false;
-
     M.findPairs();
-    if( M.pairCount() != 1 )
+    if (M.pairCount() != 3)
         res = false;
-
-    if( ! res)
+    if (!res)
         std::cout << "unit test failed\n";
+    else
+        std::cout << "unit tests passed\n";
 
     return res;
 }
