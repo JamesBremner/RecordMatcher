@@ -4,13 +4,17 @@ Find all record pairs that share the same value in two, or more, of the same col
 
 # Usage
 
-`>matcher`
+Command line parameters give control of configuration, to fine tune performance
 
-With no command line paramters, the app will generate a random data set with 10 records
+```
+>matcher
 
-`>matcher 100000`
-
-With a command line parameter, the app will generate a random data set with the specified number of records
+ --help                 produce help message
+ --multi                multithreading ( default: off )
+ --rows         count   number of records( default: 10 )
+ --seed         value   random seed ( default: set from system clock)
+ --trans        count   number of pairs to write in one DB transaction ( default: 1000 )
+```
 
 # Algorithm
 
