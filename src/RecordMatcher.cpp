@@ -22,9 +22,15 @@ void cPairStorage::setTransactionCount( int count )
     transactionCount = count;
 }
 
-void cPairStorage::clear()
+void cPairStorage::reset( int dataCount )
 {
+    // clear memory storage
     vPair.clear();
+
+    // reserve memory for storage of pairs waiting to writter to db
+    vPair.reserve( transactionCount + 10 );
+
+    // clear dastabase storage
     sqlite3_exec(db,
                  "DELETE FROM pair;",
                  0, 0, &dbErrMsg);
@@ -32,7 +38,7 @@ void cPairStorage::clear()
 
 void cPairStorage::add(int r1, int r2)
 {
-    vPair.push_back(std::make_pair(r1, r2));
+    vPair.emplace_back(r1, r2);
     if (vPair.size() > transactionCount)
         writeDB();
 }
@@ -160,7 +166,6 @@ void cMatcher::set(const std::vector<std::vector<int>> &data)
 
 void cMatcher::readfile(const std::string &fname)
 {
-    pairStore.clear();
     vdata.clear();
     std::ifstream ifs(fname);
     if (!ifs.is_open())
@@ -224,7 +229,7 @@ void cMatcher::findPairs()
 {
     raven::set::cRunWatch aWatcher("findPairs");
 
-    pairStore.clear();
+    pairStore.reset(vdata.size());
 
     if (!fMultiThread)
     {

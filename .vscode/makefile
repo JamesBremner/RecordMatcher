@@ -38,7 +38,7 @@ $(ODIR)/%.o: %.cpp
 	g++  $(CCflags) \
 	-c -o $@ $< $(INCS)
 
-starter: $(OBJ_starter)
+matcher: $(OBJ_starter)
 	g++ $(OPT) \
 	-o bin/matcher.exe $^  \
 	$(static_link_flags) $(LIBS)
@@ -47,3 +47,4 @@ starter: $(OBJ_starter)
 clean:
 	del /q .vscode\\obj\\*.o
 
+rebuild: clean matcher

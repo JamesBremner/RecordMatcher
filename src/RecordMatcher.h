@@ -23,7 +23,7 @@ public:
 
     void setTransactionCount(int count);
 
-    void clear();
+    void reset( int dataCount );
 
     void add(int r1, int r2);
 
