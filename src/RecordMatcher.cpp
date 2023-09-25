@@ -45,7 +45,7 @@ void cPairStorage::add(int r1, int r2)
 
 void cPairStorage::writeDB()
 {
-    // raven::set::cRunWatch aWatcher("writeDB");
+    raven::set::cRunWatch aWatcher("writeDB");
 
     sqlite3_stmt *stmt;
     int ret = sqlite3_prepare_v2(
@@ -234,7 +234,7 @@ void cMatcher::findPairs()
     if (!fMultiThread)
     {
         // search entire data in this process
-        findPairsRange(0, vdata.size() - 1);
+        findPairsRange(0, vdata.size() - 1,1);
     }
     else
     {
@@ -243,10 +243,12 @@ void cMatcher::findPairs()
         int splitRecordCount = vdata.size()/4;
 
         // search each part in its own process
-        std::thread th1 = findPairsRange1(
-            0, splitRecordCount - 1);
-        std::thread th2 = findPairsRange2(
-            splitRecordCount, vdata.size() - 1);
+        std::thread th1 = std::thread(
+            &cMatcher::findPairsRange,this,
+            0, splitRecordCount - 1, 1);
+        std::thread th2 = std::thread(
+            &cMatcher::findPairsRange,this,
+            splitRecordCount, vdata.size() - 1,2);
 
         // wait for both searches to complete
         th1.join();
@@ -258,8 +260,12 @@ void cMatcher::findPairs()
 
 void cMatcher::findPairsRange(
     int first,
-    int last)
+    int last,
+    int threadIndex)
 {
+    std::string scope = "findPairsRange " + std::to_string( threadIndex);
+    raven::set::cRunWatch aWatcher(scope.c_str());
+
     for (int kr1 = first; kr1 <= last; kr1++)
     {
         if (!isTwoValues(kr1))
@@ -276,20 +282,6 @@ void cMatcher::findPairsRange(
                 pairStore.add(kr1, kr2);
             }
     }
-}
-std::thread cMatcher::findPairsRange1(
-    int first,
-    int last)
-{
-    raven::set::cRunWatch aWatcher("findPairsRange1");
-    return std::thread(&cMatcher::findPairsRange, this, first, last);
-}
-std::thread cMatcher::findPairsRange2(
-    int first,
-    int last)
-{
-    raven::set::cRunWatch aWatcher("findPairsRange2");
-    return std::thread(&cMatcher::findPairsRange, this, first, last);
 }
 
 void cMatcher::display()

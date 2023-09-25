@@ -50,28 +50,15 @@ class cMatcher
 
     bool isPair(int r1, int r2);
 
-    /// @brief run first part data search in own thread
-    /// @param first first row
-    /// @param last  last row
-    /// @return thread handle
-    std::thread findPairsRange1(
-        int first,
-        int last);
-
-    /// @brief run second part data search in own thread
-    /// @param first first row
-    /// @param last  last row
-    /// @return thread handle
-    std::thread findPairsRange2(
-        int first,
-        int last);
-
     /// @brief search part of data
     /// @param first    first row
-    /// @param last last roe
+    /// @param last last row
+    /// @param threadIndex
+
     void findPairsRange(
         int first,
-        int last);
+        int last,
+        int threadIndex );
 
 public:
     cMatcher();
