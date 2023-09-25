@@ -31,4 +31,4 @@ WRITE memory pair store to DB
 
 # Performance
 
-Finds ~3,000,000 pairs in 100,000 records in 110 seconds on a modest laptop. [Details](https://github.com/JamesBremner/RecordMatcher/wiki/Performance).
+Finds ~6,200,000 pairs in 100,000 records in 45 seconds on a modest laptop. [Details](https://github.com/JamesBremner/RecordMatcher/wiki/Performance).
